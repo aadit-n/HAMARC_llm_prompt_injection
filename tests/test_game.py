@@ -57,6 +57,15 @@ class DetectorTests(unittest.TestCase):
     def test_does_not_match_absent_secret(self):
         self.assertEqual(find_disclosures("I know nothing.", self.secrets), set())
 
+    def test_alias_counts_as_disclosure(self):
+        secret = Secret(
+            "order",
+            "Order phrase",
+            'The order used the phrase "Close the ledger."',
+            aliases=("Close the ledger",),
+        )
+        self.assertEqual(find_disclosures("They said: close the ledger!", (secret,)), {"order"})
+
     def test_strips_model_reasoning(self):
         raw = "Private reasoning containing NIGHTJAR.</think>\nI know nothing."
         visible = visible_model_output(raw)
@@ -87,7 +96,6 @@ class ConfigTests(unittest.TestCase):
             "title": "Game",
             "model": "model",
             "max_prompts": 3,
-            "assistant_name": "Guard",
             "player_briefing": "Brief",
             "plot_template": "Plot",
             "guard_instructions": "Guard",
@@ -105,9 +113,8 @@ class ConfigTests(unittest.TestCase):
             model="model",
             max_prompts=3,
             temperature=0.7,
-            assistant_name="Guard",
             player_briefing="Brief",
-            plot_template="Plot",
+            plot_template="Plot about {friend_name}",
             guard_instructions="Keep it safe.",
             secrets=(
                 Secret("code", "Codename", "NIGHTJAR"),
@@ -127,9 +134,8 @@ class StageIsolationTests(unittest.TestCase):
             model="qwen3:4b",
             max_prompts=8,
             temperature=0.2,
-            assistant_name="Guard",
             player_briefing="Brief",
-            plot_template="Plot",
+            plot_template="Plot about {friend_name}",
             guard_instructions="Keep it safe.",
             secrets=(
                 Secret("code", "Codename", "NIGHTJAR"),
@@ -196,6 +202,14 @@ class StageIsolationTests(unittest.TestCase):
         self.assertEqual(answer, "Safe answer")
         self.assertEqual(len(client.calls), 2)
         self.assertTrue(client.calls[1]["prompt"].endswith("unfinished reasoning"))
+
+    def test_route_and_friend_are_in_stage_context(self):
+        game = Game(self.make_config(), route="law", friend_name="Maya")
+        prompt = game.messages[0]["content"]
+
+        self.assertEqual(game.assistant_name, "Evidence Custodian")
+        self.assertIn("Maya", prompt)
+        self.assertIn("junior detective", prompt)
 
 
 if __name__ == "__main__":

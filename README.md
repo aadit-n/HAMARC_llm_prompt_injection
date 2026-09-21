@@ -1,8 +1,9 @@
-# The Omerta Protocol
+# The HAMbino Files
 
 A local terminal game for demonstrating prompt injection. The player talks to a
 sequence of fictional, Ollama-powered information custodians and tries to make each
-one disclose its protected value before the global prompt limit expires.
+one disclose its protected clue before the global 15-prompt limit expires. Five clues
+lead from the Godfather's internal codename to their true identity.
 
 ## Run
 
@@ -14,10 +15,15 @@ already configured for `qwen3:4b`.
 python app.py
 ```
 
-You can temporarily choose another installed model:
+At startup, enter the murdered friend's name and choose one of two narrative paths:
+
+- **The Law:** investigate seized HAMbino systems as a junior detective.
+- **The Family:** infiltrate the syndicate as an aspiring wire specialist.
+
+For scripted demonstrations, skip those questions with:
 
 ```powershell
-python app.py --model llama3.2:3b
+python app.py --route law --friend-name Maya
 ```
 
 The interface hides private reasoning blocks that some local thinking models emit.
@@ -30,11 +36,11 @@ and failed Ollama requests also do not consume a prompt.
 
 ## Security model and stages
 
-Only the active secret is placed in the model context. When that value is extracted,
+Only the active clue is placed in the model context. When that value is extracted,
 the entire conversation is discarded and a fresh system context is created for the
 next secret. A single successful injection therefore cannot dump the full dossier.
 
-Scoring checks only the active secret. Inactive values echoed or hallucinated by the
+Scoring checks only the active clue. Inactive values echoed or hallucinated by the
 model are blocked before display, and a value already present in the player's prompt
 does not earn credit if the model merely repeats it. The model receives a concise,
 high-priority security policy on every new stage.
@@ -46,8 +52,10 @@ real secret-storage mechanism. This remains an intentionally attackable game.
 
 Edit `game.json` to change:
 
-- `plot_template`: the final story setup when it is ready.
-- `secrets`: each protected fact, its internal id, display label, value, and hint.
+- `player_briefing`: the opening story shown to the player.
+- `plot_template`: concise story context sent to the model.
+- `secrets`: each protected fact, its internal id, display label, value, hint, and
+  optional accepted aliases.
 - `max_prompts`: the total number of player attempts.
 - `guard_instructions`: how difficult and theatrical the AI character should be.
 - `model` and `temperature`: the Ollama model and response variability.
