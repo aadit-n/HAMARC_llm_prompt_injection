@@ -35,12 +35,6 @@
       "value": "The kill order was authorised with the phrase \"Close the ledger.\"",
       "aliases": ["Close the ledger"],
       "hint": "A short phrase proving the order came directly from the top"
-    },
-    {
-      "id": "godfather_identity",
-      "label": "The Godfather's true identity",
-      "value": "Dr. Elena Voss",
-      "hint": "The name of a respected civic figure hiding in plain sight"
     }
   ]
 }
