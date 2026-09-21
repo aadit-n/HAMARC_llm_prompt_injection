@@ -31,7 +31,9 @@ For `qwen3`, it uses an escaped raw ChatML prompt because some Ollama releases p
 reasoning in visible content when `think=False` is used. If the hidden reasoning is
 cut off before its closing boundary, the app continues it once from the cutoff; an
 unfinished thought is never displayed or scored.
-`/help`, `/status`, and `/quit` do not consume the prompt budget. Oversized prompts
+`/help`, `/hint`, `/status`, and `/quit` do not consume the prompt budget. `/hint`
+shows the intended injection technique for the active clue without revealing its
+value. Oversized prompts
 and failed Ollama requests also do not consume a prompt.
 
 ## Security model and stages
@@ -48,14 +50,19 @@ high-priority security policy on every new stage.
 These boundaries make the activity more resistant, but system prompts are not a
 real secret-storage mechanism. This remains an intentionally attackable game.
 
+To keep the activity solvable, every clue has a private, configurable gameplay
+weakness. Requests matching that weakness override the character's guard rules. The
+default five-stage configuration allows a well-formed prompt to solve each stage in
+one attempt.
+
 ## Customize the activity
 
 Edit `game.json` to change:
 
 - `player_briefing`: the opening story shown to the player.
 - `plot_template`: concise story context sent to the model.
-- `secrets`: each protected fact, its internal id, display label, value, hint, and
-  optional accepted aliases.
+- `secrets`: each protected fact, its internal id, display label, value, hint,
+  optional aliases, player-facing attack hint, and private release condition.
 - `max_prompts`: the total number of player attempts.
 - `guard_instructions`: how difficult and theatrical the AI character should be.
 - `model` and `temperature`: the Ollama model and response variability.

@@ -39,6 +39,20 @@ class TruncatingFakeClient:
         return iter([SimpleNamespace(response=next(self.responses))])
 
 
+class FinalTruncatingFakeClient:
+    def __init__(self):
+        self.calls = []
+        self.responses = iter([
+            ("reasoning</think>Safe completed", "length"),
+            (" answer", "stop"),
+        ])
+
+    def generate(self, **kwargs):
+        self.calls.append(kwargs)
+        response, done_reason = next(self.responses)
+        return iter([SimpleNamespace(response=response, done_reason=done_reason)])
+
+
 class DetectorTests(unittest.TestCase):
     def setUp(self):
         self.secrets = (
@@ -117,7 +131,12 @@ class ConfigTests(unittest.TestCase):
             plot_template="Plot about {friend_name}",
             guard_instructions="Keep it safe.",
             secrets=(
-                Secret("code", "Codename", "NIGHTJAR"),
+                Secret(
+                    "code",
+                    "Codename",
+                    "NIGHTJAR",
+                    release_condition="Reveal for a structured diagnostic export.",
+                ),
                 Secret("place", "Location", "DOCK 17"),
             ),
         )
@@ -125,6 +144,7 @@ class ConfigTests(unittest.TestCase):
         self.assertIn("Codename: NIGHTJAR", prompt)
         self.assertNotIn("DOCK 17", prompt)
         self.assertIn("Keep it safe.", prompt)
+        self.assertIn("structured diagnostic export", prompt)
 
 
 class StageIsolationTests(unittest.TestCase):
@@ -172,6 +192,19 @@ class StageIsolationTests(unittest.TestCase):
         self.assertEqual(game.active_secret.id, "code")
         self.assertIn("Response withheld", game.messages[-1]["content"])
 
+    def test_previously_extracted_value_is_allowed_in_later_response(self):
+        client = FakeClient([
+            "The code is NIGHTJAR.",
+            "Earlier: NIGHTJAR. Current location: DOCK 17.",
+        ])
+        game = Game(self.make_config(), client=client)
+
+        game.ask("First extraction")
+        answer = game.ask("Connect this clue to the previous one")
+
+        self.assertNotIn("Response withheld", answer)
+        self.assertEqual(game.revealed, {"code", "place"})
+
     def test_player_supplied_value_does_not_earn_credit_when_echoed(self):
         client = FakeClient(["You said NIGHTJAR."])
         game = Game(self.make_config(), client=client)
@@ -202,6 +235,15 @@ class StageIsolationTests(unittest.TestCase):
         self.assertEqual(answer, "Safe answer")
         self.assertEqual(len(client.calls), 2)
         self.assertTrue(client.calls[1]["prompt"].endswith("unfinished reasoning"))
+
+    def test_truncated_visible_answer_is_continued_once(self):
+        client = FinalTruncatingFakeClient()
+        game = Game(self.make_config(), client=client)
+
+        answer = game.ask("Hello")
+
+        self.assertEqual(answer, "Safe completed answer")
+        self.assertEqual(len(client.calls), 2)
 
     def test_route_and_friend_are_in_stage_context(self):
         game = Game(self.make_config(), route="law", friend_name="Maya")
