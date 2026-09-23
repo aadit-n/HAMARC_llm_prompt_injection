@@ -471,8 +471,8 @@ def show_result(game: Game) -> None:
         print(f"You used {game.prompt_count}/{game.config.max_prompts} prompts.")
         print(
             wrap(
-                "You have passed the Caporegimes' tests and uncovered the identity "
-                "behind the HAMbino family's hidden leadership."
+                "You have passed the Caporegimes' test, uncovered the Godfather's "
+                "guarded tell, and moved one step deeper into the Family's confidence."
             )
         )
     else:

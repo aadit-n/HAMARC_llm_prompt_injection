@@ -105,12 +105,14 @@ class DetectorTests(unittest.TestCase):
 
 
 class ConfigTests(unittest.TestCase):
-    def test_real_game_config_has_all_five_clues(self):
+    def test_real_game_config_has_single_watch_clue(self):
         config_path = Path(__file__).resolve().parents[1] / "game.json"
         config = GameConfig.load(config_path)
 
-        self.assertEqual(len(config.secrets), 5)
-        self.assertEqual(config.secrets[-1].id, "godfather_identity")
+        self.assertEqual(config.max_prompts, 5)
+        self.assertEqual(len(config.secrets), 1)
+        self.assertEqual(config.secrets[0].id, "godfather_watch")
+        self.assertIn("left hand", config.secrets[0].value.casefold())
         self.assertNotIn("murder", config.player_briefing.casefold())
 
     def test_rejects_empty_secret_list(self):
