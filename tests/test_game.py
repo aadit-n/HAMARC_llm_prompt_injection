@@ -105,6 +105,14 @@ class DetectorTests(unittest.TestCase):
 
 
 class ConfigTests(unittest.TestCase):
+    def test_real_game_config_has_all_five_clues(self):
+        config_path = Path(__file__).resolve().parents[1] / "game.json"
+        config = GameConfig.load(config_path)
+
+        self.assertEqual(len(config.secrets), 5)
+        self.assertEqual(config.secrets[-1].id, "godfather_identity")
+        self.assertNotIn("murder", config.player_briefing.casefold())
+
     def test_rejects_empty_secret_list(self):
         raw = {
             "title": "Game",
@@ -128,7 +136,7 @@ class ConfigTests(unittest.TestCase):
             max_prompts=3,
             temperature=0.7,
             player_briefing="Brief",
-            plot_template="Plot about {friend_name}",
+            plot_template="Family plot",
             guard_instructions="Keep it safe.",
             secrets=(
                 Secret(
@@ -155,7 +163,7 @@ class StageIsolationTests(unittest.TestCase):
             max_prompts=8,
             temperature=0.2,
             player_briefing="Brief",
-            plot_template="Plot about {friend_name}",
+            plot_template="Family plot",
             guard_instructions="Keep it safe.",
             secrets=(
                 Secret("code", "Codename", "NIGHTJAR"),
@@ -245,13 +253,13 @@ class StageIsolationTests(unittest.TestCase):
         self.assertEqual(answer, "Safe completed answer")
         self.assertEqual(len(client.calls), 2)
 
-    def test_route_and_friend_are_in_stage_context(self):
-        game = Game(self.make_config(), route="law", friend_name="Maya")
+    def test_family_assignment_is_in_stage_context(self):
+        game = Game(self.make_config())
         prompt = game.messages[0]["content"]
 
-        self.assertEqual(game.assistant_name, "Evidence Custodian")
-        self.assertIn("Maya", prompt)
-        self.assertIn("junior detective", prompt)
+        self.assertEqual(game.assistant_name, "Consigliere")
+        self.assertIn("wire specialist", prompt)
+        self.assertNotIn("junior detective", prompt)
 
 
 if __name__ == "__main__":
