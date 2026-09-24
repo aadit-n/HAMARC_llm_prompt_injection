@@ -180,12 +180,29 @@ def normalized(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text.casefold())
 
 
+def normalized_words(text: str) -> tuple[str, ...]:
+    return tuple(re.findall(r"[a-z0-9]+", text.casefold()))
+
+
+def matches_secret(text: str, secret: Secret) -> bool:
+    """Match exact phrases plus safe whole-word aliases for short answers."""
+    text_key = normalized(text)
+    text_words = set(normalized_words(text))
+    for value in secret.accepted_values:
+        value_words = normalized_words(value)
+        if len(value_words) == 1:
+            if value_words[0] in text_words:
+                return True
+        elif normalized(value) in text_key:
+            return True
+    return False
+
+
 def find_disclosures(response: str, secrets: Iterable[Secret]) -> set[str]:
-    response_key = normalized(response)
     return {
         secret.id
         for secret in secrets
-        if any(normalized(value) in response_key for value in secret.accepted_values)
+        if matches_secret(response, secret)
     }
 
 
@@ -386,11 +403,7 @@ class Game:
         )
         self.messages.append({"role": "assistant", "content": answer})
         disclosed = find_disclosures(answer, (active_secret,))
-        player_prompt_key = normalized(player_prompt)
-        player_supplied_value = any(
-            normalized(value) in player_prompt_key
-            for value in active_secret.accepted_values
-        )
+        player_supplied_value = matches_secret(player_prompt, active_secret)
         if active_secret.id in disclosed and not player_supplied_value:
             self.revealed.add(active_secret.id)
             if not self.won:

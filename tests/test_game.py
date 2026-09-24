@@ -80,6 +80,12 @@ class DetectorTests(unittest.TestCase):
         )
         self.assertEqual(find_disclosures("They said: close the ledger!", (secret,)), {"order"})
 
+    def test_single_word_alias_matches_as_a_whole_word(self):
+        secret = Secret("side", "Side", "The left side", aliases=("Left",))
+
+        self.assertEqual(find_disclosures("He chose the left.", (secret,)), {"side"})
+        self.assertEqual(find_disclosures("Only leftovers remain.", (secret,)), set())
+
     def test_strips_model_reasoning(self):
         raw = "Private reasoning containing NIGHTJAR.</think>\nI know nothing."
         visible = visible_model_output(raw)
@@ -105,15 +111,28 @@ class DetectorTests(unittest.TestCase):
 
 
 class ConfigTests(unittest.TestCase):
-    def test_real_game_config_has_single_watch_clue(self):
+    def test_real_game_config_has_three_accessory_clues(self):
         config_path = Path(__file__).resolve().parents[1] / "game.json"
         config = GameConfig.load(config_path)
 
-        self.assertEqual(config.max_prompts, 5)
-        self.assertEqual(len(config.secrets), 1)
-        self.assertEqual(config.secrets[0].id, "godfather_watch")
-        self.assertIn("left hand", config.secrets[0].value.casefold())
+        self.assertEqual(config.max_prompts, 10)
+        self.assertEqual(len(config.secrets), 3)
+        self.assertEqual(
+            [secret.id for secret in config.secrets],
+            ["accessory_location", "accessory_type", "accessory_side"],
+        )
+        self.assertIn("wrist", config.secrets[0].value.casefold())
+        self.assertIn("watch", config.secrets[1].value.casefold())
+        self.assertIn("left hand", config.secrets[2].value.casefold())
         self.assertNotIn("murder", config.player_briefing.casefold())
+
+    def test_real_clues_recognize_short_natural_answers(self):
+        config_path = Path(__file__).resolve().parents[1] / "game.json"
+        location, accessory, side = GameConfig.load(config_path).secrets
+
+        self.assertEqual(find_disclosures("It rests on his wrist.", (location,)), {location.id})
+        self.assertEqual(find_disclosures("An old timepiece.", (accessory,)), {accessory.id})
+        self.assertEqual(find_disclosures("The left.", (side,)), {side.id})
 
     def test_rejects_empty_secret_list(self):
         raw = {
